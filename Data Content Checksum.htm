@@ -1,0 +1,73 @@
+<div class="panel panel-primary">
+    <div class="panel-heading">
+        <div class="panel-title">Data Content Checksum</div>
+    </div>
+    <div class="panel-body" ng-hide="c.data.showOptions">
+        <button type="button" class="btn btn-info">Options</button>
+        <div class="form-group">
+          <label for="{{c.data.sourceLabelFor}}">Source Text</label>
+          <input type="text" class="form-control" ng-model="c.data.singleLineText" ng-change="c.onSingleLineTextChanged()" maxlength="4096" id="{{c.data.sourceTextBoxId}}" ng-hide="c.data.multiLine" ng-trim="false" />
+          <textarea class="form-control" id="{{c.data.sourceTextAreaId}}" ng-change="c.onMultiLineTextChanged()" ng-model="c.data.multiLineText" rows="{{c.data.rowCount}}" ng-show="c.data.multiLine" ng-trim="false"></textarea>
+        </div>
+        <div class="text-a-r">
+            <button type="button" class="btn btn-info btn-sm">+</button>
+            <button type="button" class="btn btn-info btn-sm">-</button>
+        </div>
+    </div>
+    <div class="panel-body" ng-show="c.data.showOptions">
+
+    </div>
+</div>
+<div class="panel panel-info">
+  <div class="panel-body">
+    <div class="row">
+      <span class="col-md-2 label label-info text-a-r">
+        Count:
+      </span>
+      <span class="col-md-4">
+        {{ c.data.count }}
+      </span>
+      <span class="col-md-2 label label-info text-a-r">
+        CRC64:
+      </span>
+      <span class="col-md-4">
+        <kbd>{{ c.data.crc }}</kbd>
+      </span>
+    </div>
+  </div>
+</div>
+<div class="panel panel-primary">
+  <div class="panel-body">
+    <div>
+      <span class="label label-info">Whitespace</span>
+      <span class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="whitespaceOptions" id="whitespaceRadio1" ng-value="0" ng-model="c.data.whitespace" ng-change="c.onOptionsChanged()" />
+        <label class="form-check-label" for="whitespaceRadio1">As-is</label>
+      </span>
+      <span class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="whitespaceOptions" id="whitespaceRadio1" ng-value="1" ng-model="c.data.whitespace" ng-change="c.onOptionsChanged()" />
+        <label class="form-check-label" for="whitespaceRadio1">Trim</label>
+      </span>
+      <span class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="whitespaceOptions" id="whitespaceRadio2" ng-value="2" ng-model="c.data.whitespace" ng-change="c.onOptionsChanged()" />
+        <label class="form-check-label" for="whitespaceRadio2">Normalize</label>
+      </span>
+      <span class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="whitespaceOptions" id="whitespaceRadio3" ng-value="3" ng-model="c.data.whitespace" ng-change="c.onOptionsChanged()" />
+        <label class="form-check-label" for="whitespaceRadio3">Ignore</label>
+      </span>
+    </div>
+    <div class="form-check">
+      <input type="checkbox" class="form-check-input" ng-model="c.data.ignoreCase" ng-change="c.onOptionsChanged()" id="ignoreCaseCheck">
+      <label class="form-check-label" for="ignoreCaseCheck">Ignore Case</label>
+    </div>
+    <div class="form-check">
+      <input type="checkbox" class="form-check-input" ng-model="c.data.ignorePunctuation" ng-change="c.onOptionsChanged()" id="ignorePunctuationCheck">
+      <label class="form-check-label" for="ignorePunctuationCheck">Ignore Punctuation</label>
+    </div>
+    <div class="form-check">
+      <input type="checkbox" class="form-check-input" ng-model="c.data.multiLine" ng-change="c.onOptionsChanged()" id="multiLineCheck">
+      <label class="form-check-label" for="multiLineCheck">Multi-line</label>
+    </div>
+  </div>
+</div>
