@@ -1,23 +1,17 @@
 api.controller=function() {
 	/* widget controller */
-    var EMPTY_CRC = '0000-0000-0000-0000';
-
 	var c = this;
-    c.data.showOptions = false;
-	c.data.singleLineText = '';
-	c.data.multiLineText = '';
-	c.data.count = 0;
-	c.data.crc = EMPTY_CRC;
-    c.data.lineCrc = [{ number: 1, count: 0, crc: EMPTY_CRC}];
-	c.data.whitespace = 0;
+	c.data.sourceText = '';
+	c.data.tranformedText = [''];
+	c.data.lines = [''];
+	c.data.charCount = 0;
+	c.data.wordCount = 0;
+	c.data.lineCount = 1;
+	c.data.crc = '0000-0000-0000-0000';
+	c.data.whiteSpaceOption = 'none';
 	c.data.ignoreCase = false;
-	c.data.ignorePunctuation = false;
-	c.data.multiLine = false;
-    c.data.rowCount = 3;
-	c.data.singleLine = false;
-    c.data.sourceTextBoxId = 'sourceTextBox';
-    c.data.sourceTextAreaId = 'sourceTextArea';
-    c.data.sourceLabelFor = c.data.sourceTextBoxId;
+	c.data.nonAlphaNumOption = 'none';
+	c.data.multiline = false;
 	var crcTable0 = [
 		0x00000000, 0xA9EA3693, 0x53D46D26, 0xFA3E5BB5, 0x0E42ECDF, 0xA7A8DA4C, 0x5D9681F9, 0xF47CB76A, 
 		0x1C85D9BE, 0xB56FEF2D, 0x4F51B498, 0xE6BB820B, 0x12C73561, 0xBB2D03F2, 0x41135847, 0xE8F96ED4, 
@@ -86,7 +80,6 @@ api.controller=function() {
 		0x86B86ED5, 0xC4488F3E, 0x0359AD02, 0x41A94CE9, 0xCF8B0890, 0x8D7BE97B, 0x4A6ACB47, 0x089A2AAC, 
 		0x14DEA25F, 0x562E43B4, 0x913F6188, 0xD3CF8063, 0x5DEDC41A, 0x1F1D25F1, 0xD80C07CD, 0x9AFCE626
 	];
-
 	function zeroPad16(value) {
 		if (value < 0) {
 			var s1 = '000' + (value >>> 16).toString(16).toUpperCase();
@@ -96,7 +89,6 @@ api.controller=function() {
 		var s = '0000000' + value.toString(16).toUpperCase();
 		return s.substring(s.length - 8, s.length - 4) + '-' + s.substring(s.length - 4);
 	}
-
 	function calculateCrc64(str) {
 		var crc0 = 0xFFFFFFFF;
 		var crc1 = 0xFFFFFFFF;
@@ -109,110 +101,187 @@ api.controller=function() {
 		crc1 = crc1 ^ 0xFFFFFFFF;
 		return zeroPad16(crc0) + '-' + zeroPad16(crc1)
 	}
-    
-    c.onOptionsChanged = function() {
-        if (c.data.multiLine == c.data.singleLine) {
-            var text = c.data.multiLineText.split(/\r\n?|\n/g)[0];
-            if (c.data.multiLine) {
-                c.data.singleLine = false;
-                if (text != c.data.singleLineText)
-                    c.data.multiLineText = c.data.singleLineText;
-                c.onMultiLineTextChanged();
-            } else {
-                c.data.singleLine = true;
-                c.data.singleLineText = text;
-                c.onSingleLineTextChanged();
-            }
-        } else if (c.data.multiLine)
-            c.onMultiLineTextChanged();
-        else
-            c.onSingleLineTextChanged();
-    };
-
-	c.onSingleLineTextChanged = function() {
-		var text = c.data.singleLineText;
-		if (text.length > 0 && (c.data.whitespace < 1 || (text = text.trim()).length > 0)) {
-			switch (c.data.whitespace) {
-				case 2:
-					if (c.data.ignorePunctuation)
-						text = text.replace(/[^a-zA-Z\d\s]+/g, '');
-                    text = text.trim().replace(/\s+/g, ' ');
+	function isNotEmptyString(s) { return typeof s == 'string' && s.length > 0; }
+	function nonAlphaNumToWs(text) { return text.replace(/[^a-zA-Z\d\s]+/g, ' '); }
+	function stripNonAlphaNumSpace(text) { return text.replace(/[^a-zA-Z\d\s]+/g, ''); }
+	function stripNonAlphaNumSpaceAndNormalize(text) { return text.replace(/\s+/g, ' ').replace(/[^a-zA-Z\d\s]+/g, ''); }
+	function nonAlphaNumToWsAndTrim(text) { return ((text = text.trim()).length > 0) ? text.replace(/[^a-zA-Z\d\s]+/g, ' ') : text; }
+	function nonAlphaNumToWsAndNormalize(text) { return ((text = text.trim()).length > 0) ? text.replace(/[^a-zA-Z\d]+/g, ' ') : text; }
+	
+	// nonAlphaNumOption: none; whiteSpaceOption: none;
+	// nonAlphaNumOption: whitespace; whiteSpaceOption: none;
+	function nonAlphaNumWsToSpace(text) { return text.replace(/[^a-zA-Z\d\s]+/g, ' '); }
+	
+	// nonAlphaNumOption: ignore; whiteSpaceOption: none;
+	function stripNonAlphaNumWs(text) { return text.replace(/[^a-zA-Z\d\s]+/g, ''); }
+	
+	// nonAlphaNumOption: none; whiteSpaceOption: trim;
+	function trim(text) { return text.trim(); }
+	
+	// nonAlphaNumOption: whitespace; whiteSpaceOption: trim;
+	function nonAlphaNumWsToSpaceAndTrim(text) { return text.replace(/[^a-zA-Z\d\s]+/g, ' ').trim(); }
+	
+	// nonAlphaNumOption: ignore; whiteSpaceOption: trim;
+	function stripNonAlphaNumWsAndTrim(text) { return text.replace(/[^a-zA-Z\d\s]+/g, ''); }
+	
+	// nonAlphaNumOption: none; whiteSpaceOption: normalize;
+	function normalizeWs(text) { return ((text = text.trim()).length > 0) ? text.replace(/\s+/g, ' ') : text; }
+	
+	// nonAlphaNumOption: whitespace; whiteSpaceOption: normalize;
+	function nonAlphaNumWsToSpaceAndNormalize(text) { return text.replace(/[^a-zA-Z\d]+/g, ' ').trim(); }
+	
+	// nonAlphaNumOption: ignore; whiteSpaceOption: normalize;
+	function stripNonAlphaNumWsAndNormalize(text) { return ((text = text.replace(/[^a-zA-Z\d\s]+/g, '').trim()).length > 0) ? text.replace(/\s+/g, ' ') : text; }
+	
+	// nonAlphaNumOption: none; whiteSpaceOption: ignore;
+	function stripWs(text) { return ((text = text.trim()).length > 0) ? text.replace(/\s+/g, ' ') : text; }
+	
+	// nonAlphaNumOption: whitespace; whiteSpaceOption: ignore;
+	// nonAlphaNumOption: ignore; whiteSpaceOption: ignore;
+	function stripNonAlphaNum(text) { return text.replace(/[^a-zA-Z\d]+/g, ''); }
+	
+	function getWordCount(text) {
+			var words = text.trim().split(/[^a-zA-Z\d]+/g);
+			var wc = words.length;
+			if (wc > 1)
+				return (words[wc - 1].length > 0) ? ((words[0].length > 0) ? wc : wc - 1) : wc - ((words[0].length > 0) ? 1 : 2);
+			return (words[0].length > 0) ? 1 : 0;
+	}
+	
+	c.onMultiLineChanged = function() {
+		if (c.data.multiline)
+			c.applyMultiLineChange(c.data.lines);
+		else {
+			if (c.data.lines.length > 1)
+				c.data.text = c.data.lines[0];
+			c.applySingleLineChange(c.data.text);
+		}
+	};
+	c.applyMultiLineChange = function(lines) {
+		var func;
+		switch (c.data.whiteSpaceOption) {
+			case 'ignore':
+				lines = lines.map((c.data.nonAlphaNumOption == 'none') ? stripWs : stripNonAlphaNum);
+				break;
+			case 'trim':
+				switch (c.data.nonAlphaNumOption) {
+					case 'whitespace':
+						lines = lines.map(nonAlphaNumWsToSpaceAndTrim);
+						break;
+					case 'ignore':
+						lines = lines.map(stripNonAlphaNumWsAndTrim);
+						break;
+					default:
+						lines = lines.map(function() { return text.trim(); });
+						break;
+				}
+				break;
+			case 'normalize':
+				switch (c.data.nonAlphaNumOption) {
+					case 'whitespace':
+						lines = lines.map(nonAlphaNumWsToSpaceAndNormalize);
+						break;
+					case 'ignore':
+						lines = lines.map(stripNonAlphaNumWsAndNormalize);
+						break;
+					default:
+						lines = lines.map(normalizeWs);
+						break;
+				}
+				break;
+			default:
+				switch (c.data.nonAlphaNumOption) {
+					case 'whitespace':
+						lines = lines.map(nonAlphaNumWsToSpace);
+						break;
+					case 'ignore':
+						lines = lines.map(stripNonAlphaNumWs);
+						break;
+				}
+				break;
+		}
+		
+	};
+	c.applySingleLineChange = function(text) {
+		if (text.length > 0) {
+			c.data.wordCount = getWordCount(text);
+			c.data.lines = [text];
+			switch (c.data.whiteSpaceOption) {
+				case 'ignore':
+					text = (c.data.nonAlphaNumOption == 'none') ? stripWs(text) : stripNonAlphaNum(text);
+							break;
+				case 'trim':
+					switch (c.data.nonAlphaNumOption) {
+						case 'whitespace':
+							text = nonAlphaNumWsToSpaceAndTrim(text);
+							break;
+						case 'ignore':
+							text = stripNonAlphaNumWsAndTrim(text);
+							break;
+						default:
+							text = text.trim();
+							break;
+					}
 					break;
-				case 3:
-					if (c.data.ignorePunctuation)
-						text = text.replace(/[^a-zA-Z\d]+/g, '');
-					else
-						text = text.replace(/\s+/g, '');
+				case 'normalize':
+					switch (c.data.nonAlphaNumOption) {
+						case 'whitespace':
+							text = nonAlphaNumWsToSpaceAndNormalize(text);
+							break;
+						case 'ignore':
+							text = stripNonAlphaNumWsAndNormalize(text);
+							break;
+						default:
+							text = normalizeWs(text);
+							break;
+					}
 					break;
 				default:
-					if (c.data.ignorePunctuation)
-						text = text.replace(/[^a-zA-Z\d\s]+/g, '');
+					switch (c.data.nonAlphaNumOption) {
+						case 'whitespace':
+							text = nonAlphaNumWsToSpace(text);
+							break;
+						case 'ignore':
+							text = stripNonAlphaNumWs(text);
+							break;
+					}
 					break;
 			}
-            if (text.length > 0) {
-                c.data.crc = calculateCrc64(c.data.ignoreCase ? text.toUpperCase() : text);
-                c.data.count = text.length;
-                return;
-            }
+			if (text.length > 0) {
+				c.data.crc = calculateCrc64(c.data.ignoreCase ? text.toLowerCase() : text);
+				c.data.charCount = text.length;
+				c.data.lineCount = 1;
+				c.data.tranformedText = [text];
+				return;
+			}	
+		} else
+			c.data.wordCount = 0;
+		c.data.charCount = 0;
+		c.data.crc = '0000-0000-0000-0000';
+		if (c.data.ignoreBlankLines) {
+			c.data.lineCount = 0;
+			c.data.tranformedText = [];
+		} else {
+			c.data.lineCount = 1;
+			c.data.tranformedText = [''];
 		}
-        c.data.crc = EMPTY_CRC;
-		c.data.count = 0;
 	};
-
-    c.onMultiLineTextChanged = function() {
-        var text = c.data.multiLineText.split(/\r\n?|\n/g);
-        switch (c.data.whitespace) {
-            case 1:
-                if (c.data.ignorePunctuation)
-                    text = text.map(function(s) {
-                        return ((s = s.trim()).length > 0) ? s.replace(/[^a-zA-Z\d\s]+/g, '') : s;
-                    });
-                else
-                    text = text.map(function(s) { return s.trim(); });
-                break;
-            case 2:
-                if (c.data.ignorePunctuation)
-                    text = text.map(function(s) {
-                        return ((s = s.trim()).length > 0) ? s.replace(/[^a-zA-Z\d\s]+/g, '') : s;
-                    });
-                text = text.map(function(s) {
-                    return (s.length > 0) ? s.replace(/\s+/g, ' ') : s;
-                });
-                break;
-            case 3:
-                if (c.data.ignorePunctuation)
-                    text = text.map(function(s) {
-                        return ((s = s.trim()).length > 0) ? s.replace(/[^a-zA-Z\d\s]+/g, '') : s;
-                    });
-                else
-                    text = text.map(function(s) {
-                        return ((s = s.trim()).length > 0) ? s.replace(/\s+/g, '') : s;
-                    });
-                break;
-            default:
-                if (c.data.ignorePunctuation)
-                    text = text.map(function(s) {
-                        return (s.length > 0) ? s.replace(/[^a-zA-Z\d\s]+/g, '') : s;
-                    });
-                break;
-        }
-        if (c.data.ignoreCase)
-            text = text.map(function(s) {
-                return (s.length > 0) ? s.toUpperCase() : s;
-            });
-        c.data.lineCrc = [];
-        var tc = 0;
-        for (var n = 0; n < text.length; n++) {
-            var s = text[n];
-            if (s.length > 0) {
-                tc += s.length;
-                c.data.lineCrc.push({ number: n + 1, count: s.length, crc: calculateCrc64(s) });
-            }
-            else
-                c.data.lineCrc.push({ number: n + 1, count: 0, crc: EMPTY_CRC });
-        }
-        var t = (text.length > 1) ? text.join("\n") : text[0];
-        c.data.count = tc;
-        c.data.crc = (t.length > 0) ? calculateCrc64(t) : EMPTY_CRC;
-    }
+	c.onIgnoreBlankChanged = function() {
+		if (c.data.multiline) {
+			if (c.data.ignoreBlankLines)
+				c.data.lineCount = (c.data.tranformedText = c.data.tranformedText.filter(isNotEmptyString)).length;
+			else
+				applyMultiLineChange(c.data.lines);
+		}
+	};
+	c.onTextChanged = function() {
+		var text = c.data.text;
+		if (c.data.multiline) {
+			c.data.wordCount = getWordCount(text);
+			var lines = text.split(/[\r\n]/g);
+			c.data.lines = lines;
+			c.applyMultiLineChange(lines);
+		} else
+			c.applySingleLineChange(text);
+	};
 };
