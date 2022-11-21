@@ -1,122 +1,99 @@
 api.controller=function() {
 	/* widget controller */
-	var c = this;
-	c.data.sourceText = '';
-	c.data.tranformedText = [''];
-	c.data.lines = [''];
-	c.data.charCount = 0;
-	c.data.wordCount = 0;
-	c.data.lineCount = 1;
-	c.data.crc = '0000-0000-0000-0000';
-	c.data.whiteSpaceOption = 'none';
-	c.data.ignoreCase = false;
-	c.data.nonAlphaNumOption = 'none';
-	c.data.multiline = false;
-	var crcTable0 = [
-		0x00000000, 0xA9EA3693, 0x53D46D26, 0xFA3E5BB5, 0x0E42ECDF, 0xA7A8DA4C, 0x5D9681F9, 0xF47CB76A, 
-		0x1C85D9BE, 0xB56FEF2D, 0x4F51B498, 0xE6BB820B, 0x12C73561, 0xBB2D03F2, 0x41135847, 0xE8F96ED4, 
-		0x90E185EF, 0x390BB37C, 0xC335E8C9, 0x6ADFDE5A, 0x9EA36930, 0x37495FA3, 0xCD770416, 0x649D3285, 
-		0x8C645C51, 0x258E6AC2, 0xDFB03177, 0x765A07E4, 0x8226B08E, 0x2BCC861D, 0xD1F2DDA8, 0x7818EB3B, 
-		0x21C30BDE, 0x88293D4D, 0x721766F8, 0xDBFD506B, 0x2F81E701, 0x866BD192, 0x7C558A27, 0xD5BFBCB4, 
-		0x3D46D260, 0x94ACE4F3, 0x6E92BF46, 0xC77889D5, 0x33043EBF, 0x9AEE082C, 0x60D05399, 0xC93A650A, 
-		0xB1228E31, 0x18C8B8A2, 0xE2F6E317, 0x4B1CD584, 0xBF6062EE, 0x168A547D, 0xECB40FC8, 0x455E395B, 
-		0xADA7578F, 0x044D611C, 0xFE733AA9, 0x57990C3A, 0xA3E5BB50, 0x0A0F8DC3, 0xF031D676, 0x59DBE0E5, 
-		0xEA6C212F, 0x438617BC, 0xB9B84C09, 0x10527A9A, 0xE42ECDF0, 0x4DC4FB63, 0xB7FAA0D6, 0x1E109645, 
-		0xF6E9F891, 0x5F03CE02, 0xA53D95B7, 0x0CD7A324, 0xF8AB144E, 0x514122DD, 0xAB7F7968, 0x02954FFB, 
-		0x7A8DA4C0, 0xD3679253, 0x2959C9E6, 0x80B3FF75, 0x74CF481F, 0xDD257E8C, 0x271B2539, 0x8EF113AA, 
-		0x66087D7E, 0xCFE24BED, 0x35DC1058, 0x9C3626CB, 0x684A91A1, 0xC1A0A732, 0x3B9EFC87, 0x9274CA14, 
-		0xCBAF2AF1, 0x62451C62, 0x987B47D7, 0x31917144, 0xC5EDC62E, 0x6C07F0BD, 0x9639AB08, 0x3FD39D9B, 
-		0xD72AF34F, 0x7EC0C5DC, 0x84FE9E69, 0x2D14A8FA, 0xD9681F90, 0x70822903, 0x8ABC72B6, 0x23564425, 
-		0x5B4EAF1E, 0xF2A4998D, 0x089AC238, 0xA170F4AB, 0x550C43C1, 0xFCE67552, 0x06D82EE7, 0xAF321874, 
-		0x47CB76A0, 0xEE214033, 0x141F1B86, 0xBDF52D15, 0x49899A7F, 0xE063ACEC, 0x1A5DF759, 0xB3B7C1CA, 
-		0x7D3274CD, 0xD4D8425E, 0x2EE619EB, 0x870C2F78, 0x73709812, 0xDA9AAE81, 0x20A4F534, 0x894EC3A7, 
-		0x61B7AD73, 0xC85D9BE0, 0x3263C055, 0x9B89F6C6, 0x6FF541AC, 0xC61F773F, 0x3C212C8A, 0x95CB1A19, 
-		0xEDD3F122, 0x4439C7B1, 0xBE079C04, 0x17EDAA97, 0xE3911DFD, 0x4A7B2B6E, 0xB04570DB, 0x19AF4648, 
-		0xF156289C, 0x58BC1E0F, 0xA28245BA, 0x0B687329, 0xFF14C443, 0x56FEF2D0, 0xACC0A965, 0x052A9FF6, 
-		0x5CF17F13, 0xF51B4980, 0x0F251235, 0xA6CF24A6, 0x52B393CC, 0xFB59A55F, 0x0167FEEA, 0xA88DC879, 
-		0x4074A6AD, 0xE99E903E, 0x13A0CB8B, 0xBA4AFD18, 0x4E364A72, 0xE7DC7CE1, 0x1DE22754, 0xB40811C7, 
-		0xCC10FAFC, 0x65FACC6F, 0x9FC497DA, 0x362EA149, 0xC2521623, 0x6BB820B0, 0x91867B05, 0x386C4D96, 
-		0xD0952342, 0x797F15D1, 0x83414E64, 0x2AAB78F7, 0xDED7CF9D, 0x773DF90E, 0x8D03A2BB, 0x24E99428, 
-		0x975E55E2, 0x3EB46371, 0xC48A38C4, 0x6D600E57, 0x991CB93D, 0x30F68FAE, 0xCAC8D41B, 0x6322E288, 
-		0x8BDB8C5C, 0x2231BACF, 0xD80FE17A, 0x71E5D7E9, 0x85996083, 0x2C735610, 0xD64D0DA5, 0x7FA73B36, 
-		0x07BFD00D, 0xAE55E69E, 0x546BBD2B, 0xFD818BB8, 0x09FD3CD2, 0xA0170A41, 0x5A2951F4, 0xF3C36767, 
-		0x1B3A09B3, 0xB2D03F20, 0x48EE6495, 0xE1045206, 0x1578E56C, 0xBC92D3FF, 0x46AC884A, 0xEF46BED9, 
-		0xB69D5E3C, 0x1F7768AF, 0xE549331A, 0x4CA30589, 0xB8DFB2E3, 0x11358470, 0xEB0BDFC5, 0x42E1E956, 
-		0xAA188782, 0x03F2B111, 0xF9CCEAA4, 0x5026DC37, 0xA45A6B5D, 0x0DB05DCE, 0xF78E067B, 0x5E6430E8, 
-		0x267CDBD3, 0x8F96ED40, 0x75A8B6F5, 0xDC428066, 0x283E370C, 0x81D4019F, 0x7BEA5A2A, 0xD2006CB9, 
-		0x3AF9026D, 0x931334FE, 0x692D6F4B, 0xC0C759D8, 0x34BBEEB2, 0x9D51D821, 0x676F8394, 0xCE85B507
-	];
-	var crcTable1 = [
-		0x00000000, 0x42F0E1EB, 0x85E1C3D7, 0xC711223C, 0x49336645, 0x0BC387AE, 0xCCD2A592, 0x8E224479, 
-		0x9266CC8A, 0xD0962D61, 0x17870F5D, 0x5577EEB6, 0xDB55AACF, 0x99A54B24, 0x5EB46918, 0x1C4488F3, 
-		0x663D78FF, 0x24CD9914, 0xE3DCBB28, 0xA12C5AC3, 0x2F0E1EBA, 0x6DFEFF51, 0xAAEFDD6D, 0xE81F3C86, 
-		0xF45BB475, 0xB6AB559E, 0x71BA77A2, 0x334A9649, 0xBD68D230, 0xFF9833DB, 0x388911E7, 0x7A79F00C, 
-		0xCC7AF1FF, 0x8E8A1014, 0x499B3228, 0x0B6BD3C3, 0x854997BA, 0xC7B97651, 0x00A8546D, 0x4258B586, 
-		0x5E1C3D75, 0x1CECDC9E, 0xDBFDFEA2, 0x990D1F49, 0x172F5B30, 0x55DFBADB, 0x92CE98E7, 0xD03E790C, 
-		0xAA478900, 0xE8B768EB, 0x2FA64AD7, 0x6D56AB3C, 0xE374EF45, 0xA1840EAE, 0x66952C92, 0x2465CD79, 
-		0x3821458A, 0x7AD1A461, 0xBDC0865D, 0xFF3067B6, 0x711223CF, 0x33E2C224, 0xF4F3E018, 0xB60301F3, 
-		0xDA050215, 0x98F5E3FE, 0x5FE4C1C2, 0x1D142029, 0x93366450, 0xD1C685BB, 0x16D7A787, 0x5427466C, 
-		0x4863CE9F, 0x0A932F74, 0xCD820D48, 0x8F72ECA3, 0x0150A8DA, 0x43A04931, 0x84B16B0D, 0xC6418AE6, 
-		0xBC387AEA, 0xFEC89B01, 0x39D9B93D, 0x7B2958D6, 0xF50B1CAF, 0xB7FBFD44, 0x70EADF78, 0x321A3E93, 
-		0x2E5EB660, 0x6CAE578B, 0xABBF75B7, 0xE94F945C, 0x676DD025, 0x259D31CE, 0xE28C13F2, 0xA07CF219, 
-		0x167FF3EA, 0x548F1201, 0x939E303D, 0xD16ED1D6, 0x5F4C95AF, 0x1DBC7444, 0xDAAD5678, 0x985DB793, 
-		0x84193F60, 0xC6E9DE8B, 0x01F8FCB7, 0x43081D5C, 0xCD2A5925, 0x8FDAB8CE, 0x48CB9AF2, 0x0A3B7B19, 
-		0x70428B15, 0x32B26AFE, 0xF5A348C2, 0xB753A929, 0x3971ED50, 0x7B810CBB, 0xBC902E87, 0xFE60CF6C, 
-		0xE224479F, 0xA0D4A674, 0x67C58448, 0x253565A3, 0xAB1721DA, 0xE9E7C031, 0x2EF6E20D, 0x6C0603E6, 
-		0xF6FAE5C0, 0xB40A042B, 0x731B2617, 0x31EBC7FC, 0xBFC98385, 0xFD39626E, 0x3A284052, 0x78D8A1B9, 
-		0x649C294A, 0x266CC8A1, 0xE17DEA9D, 0xA38D0B76, 0x2DAF4F0F, 0x6F5FAEE4, 0xA84E8CD8, 0xEABE6D33, 
-		0x90C79D3F, 0xD2377CD4, 0x15265EE8, 0x57D6BF03, 0xD9F4FB7A, 0x9B041A91, 0x5C1538AD, 0x1EE5D946, 
-		0x02A151B5, 0x4051B05E, 0x87409262, 0xC5B07389, 0x4B9237F0, 0x0962D61B, 0xCE73F427, 0x8C8315CC, 
-		0x3A80143F, 0x7870F5D4, 0xBF61D7E8, 0xFD913603, 0x73B3727A, 0x31439391, 0xF652B1AD, 0xB4A25046, 
-		0xA8E6D8B5, 0xEA16395E, 0x2D071B62, 0x6FF7FA89, 0xE1D5BEF0, 0xA3255F1B, 0x64347D27, 0x26C49CCC, 
-		0x5CBD6CC0, 0x1E4D8D2B, 0xD95CAF17, 0x9BAC4EFC, 0x158E0A85, 0x577EEB6E, 0x906FC952, 0xD29F28B9, 
-		0xCEDBA04A, 0x8C2B41A1, 0x4B3A639D, 0x09CA8276, 0x87E8C60F, 0xC51827E4, 0x020905D8, 0x40F9E433, 
-		0x2CFFE7D5, 0x6E0F063E, 0xA91E2402, 0xEBEEC5E9, 0x65CC8190, 0x273C607B, 0xE02D4247, 0xA2DDA3AC, 
-		0xBE992B5F, 0xFC69CAB4, 0x3B78E888, 0x79880963, 0xF7AA4D1A, 0xB55AACF1, 0x724B8ECD, 0x30BB6F26, 
-		0x4AC29F2A, 0x08327EC1, 0xCF235CFD, 0x8DD3BD16, 0x03F1F96F, 0x41011884, 0x86103AB8, 0xC4E0DB53, 
-		0xD8A453A0, 0x9A54B24B, 0x5D459077, 0x1FB5719C, 0x919735E5, 0xD367D40E, 0x1476F632, 0x568617D9, 
-		0xE085162A, 0xA275F7C1, 0x6564D5FD, 0x27943416, 0xA9B6706F, 0xEB469184, 0x2C57B3B8, 0x6EA75253, 
-		0x72E3DAA0, 0x30133B4B, 0xF7021977, 0xB5F2F89C, 0x3BD0BCE5, 0x79205D0E, 0xBE317F32, 0xFCC19ED9, 
-		0x86B86ED5, 0xC4488F3E, 0x0359AD02, 0x41A94CE9, 0xCF8B0890, 0x8D7BE97B, 0x4A6ACB47, 0x089A2AAC, 
-		0x14DEA25F, 0x562E43B4, 0x913F6188, 0xD3CF8063, 0x5DEDC41A, 0x1F1D25F1, 0xD80C07CD, 0x9AFCE626
-	];
-	function zeroPad16(value) {
-		if (value < 0) {
-			var s1 = '000' + (value >>> 16).toString(16).toUpperCase();
-			var s2 = '000' + (value & 0xFFFF).toString(16).toUpperCase();
-			return s1.substring(s1.length - 4) + '-' + s2.substring(s2.length - 4);
-		}
-		var s = '0000000' + value.toString(16).toUpperCase();
-		return s.substring(s.length - 8, s.length - 4) + '-' + s.substring(s.length - 4);
-	}
-	function calculateCrc64(str) {
-		var crc0 = 0xFFFFFFFF;
-		var crc1 = 0xFFFFFFFF;
-		for (var i = 0; i < str.length; i++) {
-			var idx = (crc1 ^ str.charCodeAt(i)) & 0xFF;
-			crc1 = crcTable1[idx] ^ (((crc1 << 8) & 0xFFFFFFFF) | (crc0 >>> 24)); 
-			crc0 = crcTable0[idx] ^ ((crc0 << 8) & 0xFFFFFFFF); 
-		}
-		crc0 = crc0 ^ 0xFFFFFFFF;
-		crc1 = crc1 ^ 0xFFFFFFFF;
-		return zeroPad16(crc0) + '-' + zeroPad16(crc1)
-	}
+
+    var crc64Table = [
+        0x0000, 0x01b0, 0x0360, 0x02d0, 0x06c0, 0x0770, 0x05a0, 0x0410, 0x0d80, 0x0c30, 0x0ee0, 0x0f50, 0x0b40, 0x0af0, 0x0820, 0x0990,
+        0x1b00, 0x1ab0, 0x1860, 0x19d0, 0x1dc0, 0x1c70, 0x1ea0, 0x1f10, 0x1680, 0x1730, 0x15e0, 0x1450, 0x1040, 0x11f0, 0x1320, 0x1290,
+        0x3600, 0x37b0, 0x3560, 0x34d0, 0x30c0, 0x3170, 0x33a0, 0x3210, 0x3b80, 0x3a30, 0x38e0, 0x3950, 0x3d40, 0x3cf0, 0x3e20, 0x3f90,
+        0x2d00, 0x2cb0, 0x2e60, 0x2fd0, 0x2bc0, 0x2a70, 0x28a0, 0x2910, 0x2080, 0x2130, 0x23e0, 0x2250, 0x2640, 0x27f0, 0x2520, 0x2490,
+        0x6c00, 0x6db0, 0x6f60, 0x6ed0, 0x6ac0, 0x6b70, 0x69a0, 0x6810, 0x6180, 0x6030, 0x62e0, 0x6350, 0x6740, 0x66f0, 0x6420, 0x6590,
+        0x7700, 0x76b0, 0x7460, 0x75d0, 0x71c0, 0x7070, 0x72a0, 0x7310, 0x7a80, 0x7b30, 0x79e0, 0x7850, 0x7c40, 0x7df0, 0x7f20, 0x7e90,
+        0x5a00, 0x5bb0, 0x5960, 0x58d0, 0x5cc0, 0x5d70, 0x5fa0, 0x5e10, 0x5780, 0x5630, 0x54e0, 0x5550, 0x5140, 0x50f0, 0x5220, 0x5390,
+        0x4100, 0x40b0, 0x4260, 0x43d0, 0x47c0, 0x4670, 0x44a0, 0x4510, 0x4c80, 0x4d30, 0x4fe0, 0x4e50, 0x4a40, 0x4bf0, 0x4920, 0x4890,
+        0xd800, 0xd9b0, 0xdb60, 0xdad0, 0xdec0, 0xdf70, 0xdda0, 0xdc10, 0xd580, 0xd430, 0xd6e0, 0xd750, 0xd340, 0xd2f0, 0xd020, 0xd190,
+        0xc300, 0xc2b0, 0xc060, 0xc1d0, 0xc5c0, 0xc470, 0xc6a0, 0xc710, 0xce80, 0xcf30, 0xcde0, 0xcc50, 0xc840, 0xc9f0, 0xcb20, 0xca90,
+        0xee00, 0xefb0, 0xed60, 0xecd0, 0xe8c0, 0xe970, 0xeba0, 0xea10, 0xe380, 0xe230, 0xe0e0, 0xe150, 0xe540, 0xe4f0, 0xe620, 0xe790,
+        0xf500, 0xf4b0, 0xf660, 0xf7d0, 0xf3c0, 0xf270, 0xf0a0, 0xf110, 0xf880, 0xf930, 0xfbe0, 0xfa50, 0xfe40, 0xfff0, 0xfd20, 0xfc90,
+        0xb400, 0xb5b0, 0xb760, 0xb6d0, 0xb2c0, 0xb370, 0xb1a0, 0xb010, 0xb980, 0xb830, 0xbae0, 0xbb50, 0xbf40, 0xbef0, 0xbc20, 0xbd90,
+        0xaf00, 0xaeb0, 0xac60, 0xadd0, 0xa9c0, 0xa870, 0xaaa0, 0xab10, 0xa280, 0xa330, 0xa1e0, 0xa050, 0xa440, 0xa5f0, 0xa720, 0xa690,
+        0x8200, 0x83b0, 0x8160, 0x80d0, 0x84c0, 0x8570, 0x87a0, 0x8610, 0x8f80, 0x8e30, 0x8ce0, 0x8d50, 0x8940, 0x88f0, 0x8a20, 0x8b90,
+        0x9900, 0x98b0, 0x9a60, 0x9bd0, 0x9fc0, 0x9e70, 0x9ca0, 0x9d10, 0x9480, 0x9530, 0x97e0, 0x9650, 0x9240, 0x93f0, 0x9120, 0x9090
+    ];
+    
+    function zeroPad2(value) { return (value < -9 || value > 9) ? value.toString(16) : '0' + value.toString(16); }
+
+    function crc64ToString(buffer) {
+        return zeroPad2(buffer[7]) + zeroPad2(buffer[6]) + '-' + zeroPad2(buffer[5]) + zeroPad2(buffer[4]) +
+            '-' + zeroPad2(buffer[3]) + zeroPad2(buffer[2]) + '-' + zeroPad2(buffer[1]) + zeroPad2(buffer[0]);
+    }
+
+    function calculateNextCrc64(buffer, value) {
+        var v = crc64Table[(value ^ crc.buffer[0]) & 0xff];
+        crc.buffer[0] = crc.buffer[1];
+        crc.buffer[1] = crc.buffer[2];
+        crc.buffer[2] = crc.buffer[3];
+        crc.buffer[3] = crc.buffer[4];
+        crc.buffer[4] = crc.buffer[5];
+        crc.buffer[5] = crc.buffer[6];
+        crc.buffer[6] = crc.buffer[7] ^ (v & 0xff);
+        crc.buffer[7] = v >> 8;
+    }
+
+    function calculateCrc64(text) {
+        var crc = {
+            buffer: new Int8Array(8),
+            toString() { return crc64ToString(this.buffer); }
+        };
+        crc.buffer[0] = 0;
+        crc.buffer[1] = 0;
+        crc.buffer[2] = 0;
+        crc.buffer[3] = 0;
+        crc.buffer[4] = 0;
+        crc.buffer[5] = 0;
+        crc.buffer[6] = 0;
+        crc.buffer[7] = 0;
+        if (typeof text === 'string')
+            for (var i = 0; i < text.length; i++)
+                calculateNextCrc64(crc.buffer, text.charCodeAt(i));
+        return crc;
+    }
+
+    function aggregateCrc64(inputCrcs) {
+        var crc;
+        if (inputCrcs.length == 1) {
+            var crc = {
+                buffer: new Int8Array(8),
+                toString() { return crc64ToString(this.buffer); }
+            };
+            var firstCrc = inputCrcs[0];
+            crc.buffer[0] = firstCrc.buffer[0];
+            crc.buffer[1] = firstCrc.buffer[1];
+            crc.buffer[2] = firstCrc.buffer[2];
+            crc.buffer[3] = firstCrc.buffer[3];
+            crc.buffer[4] = firstCrc.buffer[4];
+            crc.buffer[5] = firstCrc.buffer[5];
+            crc.buffer[6] = firstCrc.buffer[6];
+            crc.buffer[7] = firstCrc.buffer[7];
+        } else {
+            crc = calculateCrc64();
+            if (inputCrcs.length > 1) {
+                calculateNextCrc64(crc.buffer, inputCrcs.length - 1);
+                inputCrcs.forEach(function(value) {
+                    value.buffer.forEach(function(n) { calculateNextCrc64(this.buffer, n); }, this);
+                }, crc);
+            }
+        } 
+        return crc;
+    }
+
 	function isNotEmptyString(s) { return typeof s == 'string' && s.length > 0; }
-	function nonAlphaNumToWs(text) { return text.replace(/[^a-zA-Z\d\s]+/g, ' '); }
-	function stripNonAlphaNumSpace(text) { return text.replace(/[^a-zA-Z\d\s]+/g, ''); }
-	function stripNonAlphaNumSpaceAndNormalize(text) { return text.replace(/\s+/g, ' ').replace(/[^a-zA-Z\d\s]+/g, ''); }
-	function nonAlphaNumToWsAndTrim(text) { return ((text = text.trim()).length > 0) ? text.replace(/[^a-zA-Z\d\s]+/g, ' ') : text; }
-	function nonAlphaNumToWsAndNormalize(text) { return ((text = text.trim()).length > 0) ? text.replace(/[^a-zA-Z\d]+/g, ' ') : text; }
-	
+
 	// nonAlphaNumOption: none; whiteSpaceOption: none;
 	// nonAlphaNumOption: whitespace; whiteSpaceOption: none;
 	function nonAlphaNumWsToSpace(text) { return text.replace(/[^a-zA-Z\d\s]+/g, ' '); }
 	
 	// nonAlphaNumOption: ignore; whiteSpaceOption: none;
 	function stripNonAlphaNumWs(text) { return text.replace(/[^a-zA-Z\d\s]+/g, ''); }
-	
-	// nonAlphaNumOption: none; whiteSpaceOption: trim;
-	function trim(text) { return text.trim(); }
 	
 	// nonAlphaNumOption: whitespace; whiteSpaceOption: trim;
 	function nonAlphaNumWsToSpaceAndTrim(text) { return text.replace(/[^a-zA-Z\d\s]+/g, ' ').trim(); }
@@ -139,149 +116,157 @@ api.controller=function() {
 	// nonAlphaNumOption: whitespace; whiteSpaceOption: ignore;
 	// nonAlphaNumOption: ignore; whiteSpaceOption: ignore;
 	function stripNonAlphaNum(text) { return text.replace(/[^a-zA-Z\d]+/g, ''); }
-	
+    
 	function getWordCount(text) {
-			var words = text.trim().split(/[^a-zA-Z\d]+/g);
-			var wc = words.length;
-			if (wc > 1)
-				return (words[wc - 1].length > 0) ? ((words[0].length > 0) ? wc : wc - 1) : wc - ((words[0].length > 0) ? 1 : 2);
-			return (words[0].length > 0) ? 1 : 0;
-	}
-	
-	c.onMultiLineChanged = function() {
-		if (c.data.multiline)
-			c.applyMultiLineChange(c.data.lines);
-		else {
-			if (c.data.lines.length > 1)
-				c.data.text = c.data.lines[0];
-			c.applySingleLineChange(c.data.text);
+        var words = text.trim().split(/[^a-zA-Z\d]+/g);
+        var wc = words.length;
+        if (wc > 1)
+            return (words[wc - 1].length > 0) ? ((words[0].length > 0) ? wc : wc - 1) : wc - ((words[0].length > 0) ? 1 : 2);
+        return (words[0].length > 0) ? 1 : 0;
+    }
+
+    function onTextChanged() {
+        switch (this.nonAlphaNumOption) {
+            case "ignore":
+                this.lines.forEach(function(value) { value.transformed = value.source.replace(/[^A-Za-z\d\s]+/g, ''); });
+                break;
+            case "whitespace":
+                this.lines.forEach(function(value) { value.transformed = value.source.replace(/[^A-Za-z\d\s]+/g, ' '); });
+                break;
+            default:
+                this.lines.forEach(function(value) { value.transformed = value.source; });
+                break;
+        }
+        switch (this.whiteSpaceOption) {
+            case "ignore":
+                this.lines.forEach(function(value) { value.transformed = value.transformed.replace(/\s+/g, ''); });
+                break;
+            case "normalize":
+                this.lines.forEach(function(value) { value.transformed = value.transformed.trim().replace(/\s+/g, ' '); });
+                break;
+            case "trim":
+                this.lines.forEach(function(value) { value.transformed = value.transformed.trim(); });
+                break;
+        }
+        this.lineCount = 0;
+        if (this.ignoreBlankLines) {
+            if (this.ignoreCase)
+                this.crc = aggregateCrc64(this.lines.filter(function(value) {
+                    if (value.transformed.length > 0) {
+                        value.crc = calculateCrc64(value.transformed.toLowerCase());
+                        this.lineCount++;
+                        value.lineNumber = this.lineCount.toString();
+                        this.charCount += value.transformed.length;
+                        return true;
+                    }
+                    value.lineNumber = '';
+                    return false;
+                }, this).map(function(value) { return value.crc; })).toString();
+            else
+                this.crc = aggregateCrc64(this.lines.filter(function(value) {
+                    if (value.transformed.length > 0) {
+                        value.crc = calculateCrc64(value.transformed);
+                        this.lineCount++;
+                        value.lineNumber = this.lineCount.toString();
+                        this.charCount += value.transformed.length;
+                        return true;
+                    }
+                    value.lineNumber = '';
+                    return false;
+                }, this).map(function(value) { return value.crc; })).toString();
+        } if (this.ignoreCase)
+            this.crc = aggregateCrc64(this.lines.map(function(value) {
+                this.charCount += value.transformed.length;
+                value.crc = calculateCrc64(value.transformed.toLowerCase());
+                this.lineCount++;
+                value.lineNumber = this.lineCount.toString();
+                return value.crc;
+            }, this)).toString();
+        else
+            this.crc = aggregateCrc64(this.lines.map(function(value) {
+                this.charCount += value.transformed.length;
+                value.crc = calculateCrc64(value.transformed);
+                this.lineCount++;
+                value.lineNumber = this.lineCount.toString();
+                return value.crc;
+            }, this)).toString();
+    }
+
+	var c = this;
+	c.data.singleLineText = '';
+	c.data.multiLineText = '';
+    c.data.lines = [{ lineNumber: 1, source: '', transformed: '', crc: calculateCrc64() }];
+	c.data.crc = c.data.lines[0].crc.toString();
+	c.data.charCount = 0;
+	c.data.wordCount = 0;
+	c.data.lineCount = 1;
+	c.data.whiteSpaceOption = 'none';
+	c.data.ignoreCase = false;
+	c.data.nonAlphaNumOption = 'none';
+	c.data.isMultiLine = false;
+    c.data.ignoreBlankLines = false;
+
+    c.onIsMultiLineChanged = function() {
+		if (this.data.isMultiLine) {
+            this.data.multiLineText = this.data.singleLineText;
+            this.data.lines = this.data.multiLineText.split(/\r\n?|\n/g).map(function(value) { return { source: value }; });
+            onTextChanged.apply(this.data);
+        } else {
+            var firstLine = this.data.lines[0];
+			this.data.singleLineText = firstLine.source;
+            if (this.data.lines.length > 1) {
+                this.data.lines = [firstLine];
+                this.data.lineCount = 1;
+                this.data.crc = this.crc = aggregateCrc64((typeof firstLine.crc === 'undefined') ? [] : [firstLine.crc]).toString();
+            }
 		}
-	};
-	c.applyMultiLineChange = function(lines) {
-		var func;
-		switch (c.data.whiteSpaceOption) {
-			case 'ignore':
-				lines = lines.map((c.data.nonAlphaNumOption == 'none') ? stripWs : stripNonAlphaNum);
-				break;
-			case 'trim':
-				switch (c.data.nonAlphaNumOption) {
-					case 'whitespace':
-						lines = lines.map(nonAlphaNumWsToSpaceAndTrim);
-						break;
-					case 'ignore':
-						lines = lines.map(stripNonAlphaNumWsAndTrim);
-						break;
-					default:
-						lines = lines.map(function() { return text.trim(); });
-						break;
-				}
-				break;
-			case 'normalize':
-				switch (c.data.nonAlphaNumOption) {
-					case 'whitespace':
-						lines = lines.map(nonAlphaNumWsToSpaceAndNormalize);
-						break;
-					case 'ignore':
-						lines = lines.map(stripNonAlphaNumWsAndNormalize);
-						break;
-					default:
-						lines = lines.map(normalizeWs);
-						break;
-				}
-				break;
-			default:
-				switch (c.data.nonAlphaNumOption) {
-					case 'whitespace':
-						lines = lines.map(nonAlphaNumWsToSpace);
-						break;
-					case 'ignore':
-						lines = lines.map(stripNonAlphaNumWs);
-						break;
-				}
-				break;
-		}
-		
-	};
-	c.applySingleLineChange = function(text) {
-		if (text.length > 0) {
-			c.data.wordCount = getWordCount(text);
-			c.data.lines = [text];
-			switch (c.data.whiteSpaceOption) {
-				case 'ignore':
-					text = (c.data.nonAlphaNumOption == 'none') ? stripWs(text) : stripNonAlphaNum(text);
-							break;
-				case 'trim':
-					switch (c.data.nonAlphaNumOption) {
-						case 'whitespace':
-							text = nonAlphaNumWsToSpaceAndTrim(text);
-							break;
-						case 'ignore':
-							text = stripNonAlphaNumWsAndTrim(text);
-							break;
-						default:
-							text = text.trim();
-							break;
-					}
-					break;
-				case 'normalize':
-					switch (c.data.nonAlphaNumOption) {
-						case 'whitespace':
-							text = nonAlphaNumWsToSpaceAndNormalize(text);
-							break;
-						case 'ignore':
-							text = stripNonAlphaNumWsAndNormalize(text);
-							break;
-						default:
-							text = normalizeWs(text);
-							break;
-					}
-					break;
-				default:
-					switch (c.data.nonAlphaNumOption) {
-						case 'whitespace':
-							text = nonAlphaNumWsToSpace(text);
-							break;
-						case 'ignore':
-							text = stripNonAlphaNumWs(text);
-							break;
-					}
-					break;
-			}
-			if (text.length > 0) {
-				c.data.crc = calculateCrc64(c.data.ignoreCase ? text.toLowerCase() : text);
-				c.data.charCount = text.length;
-				c.data.lineCount = 1;
-				c.data.tranformedText = [text];
-				return;
-			}	
-		} else
-			c.data.wordCount = 0;
-		c.data.charCount = 0;
-		c.data.crc = '0000-0000-0000-0000';
-		if (c.data.ignoreBlankLines) {
-			c.data.lineCount = 0;
-			c.data.tranformedText = [];
-		} else {
-			c.data.lineCount = 1;
-			c.data.tranformedText = [''];
-		}
-	};
-	c.onIgnoreBlankChanged = function() {
-		if (c.data.multiline) {
-			if (c.data.ignoreBlankLines)
-				c.data.lineCount = (c.data.tranformedText = c.data.tranformedText.filter(isNotEmptyString)).length;
-			else
-				applyMultiLineChange(c.data.lines);
-		}
-	};
-	c.onTextChanged = function() {
-		var text = c.data.text;
-		if (c.data.multiline) {
-			c.data.wordCount = getWordCount(text);
-			var lines = text.split(/[\r\n]/g);
-			c.data.lines = lines;
-			c.applyMultiLineChange(lines);
-		} else
-			c.applySingleLineChange(text);
-	};
+    };
+
+    c.onIgnoreBlankChanged = function() {
+        this.data.lineCount = 0;
+        this.lineCount = 0;
+        if (this.ignoreBlankLines)
+            this.crc = aggregateCrc64(this.lines.filter(function(value) {
+                if (value.transformed.length == 0) {
+                    this.lineCount++;
+                    value.lineNumber = this.lineCount.toString();
+                    return true;
+                }
+                value.lineNumber = '';
+                value.crc = undefined;
+                return false;
+            }, this).map(function(value) { return value.crc; })).toString();
+        else
+            this.crc = aggregateCrc64(this.lines.map(function(value) {
+                if (value.transformed.length == 0)
+                    value.crc = calculateCrc64();
+                this.lineCount++;
+                value.lineNumber = this.lineCount.toString();
+                return value.crc;
+            }, this)).toString();
+    };
+
+    c.onSingleLineTextChanged = function() {
+        if (this.data.isMultiLine)
+            return;
+        this.wordCount = getWordCount(this.data.singleLineText);
+        this.data.lines = [{ source: this.data.singleLineText }];
+        onTextChanged.apply(this.data);
+    };
+    
+    c.onMultiLineTextChanged = function() {
+        if (!this.data.isMultiLine)
+            return;
+        this.wordCount = getWordCount(this.data.multiLineText);
+        this.data.lines = this.data.multiLineText.split(/\r\n?|\n/g).map(function(value) { return { source: value }; });
+        onTextChanged.apply(this.data);
+    };
+    
+    c.onTextOptionChanged = function() {
+        if (this.data.isMultiLine)
+        	this.data.lines = this.data.multiLineText.split(/\r\n?|\n/g).map(function(value) { return { source: value }; });
+		else
+        	this.data.lines = [{ source: this.data.singleLineText }];
+        onTextChanged.apply(this.data);
+    };
 };

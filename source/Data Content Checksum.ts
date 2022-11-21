@@ -1,21 +1,21 @@
 declare type WHITESPACE_OPTION = 'none' | 'trim' | 'normalize' | 'ignore';
 declare type NONALPHANUM_OPTION = 'none' | 'whitespace' | 'ignore';
 
-declare interface ICrC64 {
-    value0: number;
-    value1: number;
-    value2: number;
-    value3: number;
+declare interface ICrc64 {
+    buffer: Int8Array & { length: 8 };
     toString(): string;
 }
 declare interface ITransformedLine {
+    lineNumber: string;
     source: string;
     transformed: string;
-    crc?: ICrc;
+    crc?: ICrc64;
 }
 declare interface IControlData {
-    sourceText: string;
-    lines: [ITransformedLine];
+    singleLineText: string;
+    multiLineText: string;
+    lines: ITransformedLine[];
+    lineCrc: ILineCrc[];
     charCount: number;
     wordCount: number;
     lineCount: number;
@@ -23,12 +23,12 @@ declare interface IControlData {
     whiteSpaceOption: WHITESPACE_OPTION;
     ignoreCase: boolean;
     nonAlphaNumOption: NONALPHANUM_OPTION;
-    multiline: boolean;
+    isMultiLine: boolean;
     ignoreBlankLines: boolean;
 }
 declare interface IController {
     data: IControlData;
-    onMultiLineChanged: function(this: IController): void;
+    onIsMultiLineChanged: function(this: IController): void;
     onIgnoreBlankChanged: function(this: IController): void;
     onTextChanged: function(this: IController): void;
 }
@@ -55,72 +55,71 @@ var api: { controller: function } = function() {
         0x9900, 0x98b0, 0x9a60, 0x9bd0, 0x9fc0, 0x9e70, 0x9ca0, 0x9d10, 0x9480, 0x9530, 0x97e0, 0x9650, 0x9240, 0x93f0, 0x9120, 0x9090
     ];
     
-    var zStr = '000';
-    function zeroPad4(value: number) {
-        var s = zStr + value.toString(16).toUpperCase();
-        return s.substring(s.length - 4);
+    function zeroPad2(value: number): string { return (value < -9 || value > 9) ? value.toString(16) : '0' + value.toString(16); }
+
+    function crc64ToString(buffer: Int8Array & { length: 8 }): string {
+        return zeroPad2(buffer[7]) + zeroPad2(buffer[6]) + '-' + zeroPad2(buffer[5]) + zeroPad2(buffer[4]) +
+            '-' + zeroPad2(buffer[3]) + zeroPad2(buffer[2]) + '-' + zeroPad2(buffer[1]) + zeroPad2(buffer[0]);
     }
 
-    function crc64ToString(this: ICrC64): string { return zeroPad4(this.value3) + '-' + zeroPad4(this.value2) + '-' + zeroPad4(this.value1) + '-' + zeroPad4(this.value0)}
+    function calculateNextCrc64(buffer: Int8Array & { length: 8 }, value: number): void {
+        var v = crc64Table[(value ^ crc.buffer[0]) & 0xff];
+        crc.buffer[0] = crc.buffer[1];
+        crc.buffer[1] = crc.buffer[2];
+        crc.buffer[2] = crc.buffer[3];
+        crc.buffer[3] = crc.buffer[4];
+        crc.buffer[4] = crc.buffer[5];
+        crc.buffer[5] = crc.buffer[6];
+        crc.buffer[6] = crc.buffer[7] ^ (v & 0xff);
+        crc.buffer[7] = v >> 8;
+    }
 
-    function calculateCrc64(text?: string | null): ICrC64 {
+    function calculateCrc64(text?: string | null) : ICrc64 {
         var crc = {
-            value0: 0, value1: 0, value2: 0, value3: 0,
-            toString(this: ICrC64): string { return crc64ToString.apply(this); }
+            buffer: new Int8Array(8),
+            toString(this: ICrc64): string { return crc64ToString(this.buffer); }
         };
+        crc.buffer[0] = 0;
+        crc.buffer[1] = 0;
+        crc.buffer[2] = 0;
+        crc.buffer[3] = 0;
+        crc.buffer[4] = 0;
+        crc.buffer[5] = 0;
+        crc.buffer[6] = 0;
+        crc.buffer[7] = 0;
         if (typeof text === 'string')
-            for (var i = 0; i < text.length; i++) {
-                var idx = (text.charCodeAt(i) ^ crc.value0) & 0xff;
-                crc.value0 = (crc.value0 >> 8) | ((crc.value1 & 0xff) << 8);
-                crc.value1 = (crc.value1 >> 8) | ((crc.value2 & 0xff) << 8);
-                crc.value2 = (crc.value2 >> 8) | ((crc.value3 & 0xff) << 8);
-                crc.value3 = (crc.value3 >> 8) ^ crc64Table[idx];
+            for (var i = 0; i < text.length; i++)
+                calculateNextCrc64(crc.buffer, text.charCodeAt(i));
+        return crc;
+    }
+
+    function aggregateCrc64(inputCrcs: ICrC64[]): ICrC64 {
+        var crc: ICrC64;
+        if (inputCrcs.length == 1) {
+            var crc = {
+                buffer: new Int8Array(8),
+                toString(this: ICrc64): string { return crc64ToString(this.buffer); }
+            };
+            var firstCrc = inputCrcs[0];
+            crc.buffer[0] = firstCrc.buffer[0];
+            crc.buffer[1] = firstCrc.buffer[1];
+            crc.buffer[2] = firstCrc.buffer[2];
+            crc.buffer[3] = firstCrc.buffer[3];
+            crc.buffer[4] = firstCrc.buffer[4];
+            crc.buffer[5] = firstCrc.buffer[5];
+            crc.buffer[6] = firstCrc.buffer[6];
+            crc.buffer[7] = firstCrc.buffer[7];
+        } else {
+            crc = calculateCrc64();
+            if (inputCrcs.length > 1) {
+                calculateNextCrc64(crc.buffer, inputCrcs.length - 1);
+                inputCrcs.forEach(function(this: ICrc64, value: ICrc64): void {
+                    value.buffer.forEach(function(this: ICrc64, n: number): void { calculateNextCrc64(this.buffer, n); }, this);
+                }, crc);
             }
+        } 
         return crc;
     }
-
-    function aggregateCrc64(lines: [ITransformedLine]): ICrC64 {
-        var crc = {
-            value0: 0, value1: 0, value2: 0, value3: 0,
-            toString(this: ICrC64): string { return crc64ToString.apply(this); }
-        };
-        var lineCrcs = lines.filter(function(value: ITransformedLine): boolean { return typeof value.crc !== 'undefined'; }).map(function(value: ITransformedLine): ICrC64 { return value.crc; });
-        if (lineCrcs.length == 1) {
-            crc.value0 = lineCrcs[0].value0;
-            crc.value1 = lineCrcs[0].value1;
-            crc.value2 = lineCrcs[0].value2;
-            crc.value3 = lineCrcs[0].value3;
-        } else if (lineCrcs.length > 1) {
-            var idx = ((lineCrcs.length - 1) ^ crc.value0) & 0xff;
-            crc.value0 = (crc.value0 >> 8) | ((crc.value1 & 0xff) << 8);
-            crc.value1 = (crc.value1 >> 8) | ((crc.value2 & 0xff) << 8);
-            crc.value2 = (crc.value2 >> 8) | ((crc.value3 & 0xff) << 8);
-            crc.value3 = (crc.value3 >> 8) ^ crc64Table[idx];
-            lineCrcs.forEach(function(this: ICrC64, value: ICrC64): void {
-                [value.value3, value.value2, value.value1, value.value0].forEach(function(this: ICrC64, n: number): void {
-                    var idx = (n ^ this.value0) & 0xff;
-                    this.value0 = (this.value0 >> 8) | ((this.value1 & 0xff) << 8);
-                    this.value1 = (this.value1 >> 8) | ((this.value2 & 0xff) << 8);
-                    this.value2 = (this.value2 >> 8) | ((this.value3 & 0xff) << 8);
-                    this.value3 = (this.value3 >> 8) ^ crc64Table[idx];
-                }, this);
-            }, crc);
-        }
-        return crc;
-    }
-
-	var c: IController = <IController>this;
-	c.data.sourceText = '';
-    c.data.lines = [{ source: '', transformed: '', crc: calculateCrc64() }];
-	c.data.charCount = 0;
-	c.data.wordCount = 0;
-	c.data.lineCount = 1;
-	c.data.crc = c.data.lines[0].crc.toString();
-	c.data.whiteSpaceOption = 'none';
-	c.data.ignoreCase = false;
-	c.data.nonAlphaNumOption = 'none';
-	c.data.multiline = false;
-    c.data.ignoreBlankLines = false;
 
 	function isNotEmptyString(s?: string | null): string { return typeof s == 'string' && s.length > 0; }
 
@@ -161,176 +160,140 @@ var api: { controller: function } = function() {
         return (words[0].length > 0) ? 1 : 0;
     }
 
-    function applyMultiLineChange(this: IControlData): void {
-		switch (this.whiteSpaceOption) {
-			case 'ignore':
-                if (this.nonAlphaNumOption == 'none')
-                    this.lines.forEach(function(value: ITransformedLine) { value.transformed = stripWs(value.source); });
-                else
-                    this.lines.forEach(function(value: ITransformedLine) { value.transformed = stripNonAlphaNum(value.source); });
-				break;
-			case 'trim':
-				switch (this.nonAlphaNumOption) {
-					case 'whitespace':
-                        this.lines.forEach(function(value: ITransformedLine) { value.transformed = nonAlphaNumWsToSpaceAndTrim(value.source); });
-						break;
-					case 'ignore':
-                        this.lines.forEach(function(value: ITransformedLine) { value.transformed = stripNonAlphaNumWsAndTrim(value.source); });
-						break;
-					default:
-                        this.lines.forEach(function(value: ITransformedLine) { value.transformed = value.source.trim(); });
-						break;
-				}
-				break;
-			case 'normalize':
-				switch (this.nonAlphaNumOption) {
-					case 'whitespace':
-                        this.lines.forEach(function(value: ITransformedLine) { value.transformed = nonAlphaNumWsToSpaceAndNormalize(value.source); });
-						break;
-					case 'ignore':
-                        this.lines.forEach(function(value: ITransformedLine) { value.transformed = stripNonAlphaNumWsAndNormalize(value.source); });
-						break;
-					default:
-                        this.lines.forEach(function(value: ITransformedLine) { value.transformed = normalizeWs(value.source); })
-						break;
-				}
-				break;
-			default:
-				switch (this.nonAlphaNumOption) {
-					case 'whitespace':
-                        this.lines.forEach(function(value: ITransformedLine) { value.transformed = nonAlphaNumWsToSpace(value.source); });
-						break;
-					case 'ignore':
-                        this.lines.forEach(function(value: ITransformedLine) { value.transformed = stripNonAlphaNumWs(value.source); });
-						break;
-                    default:
-                        this.lines.forEach(function(value: ITransformedLine) { value.transformed = value.source; });
-                        break;
-				}
-				break;
-		}
-        var idx;
-        if (this.ignoreBlankLines) {
-            this.lines.filter(function(value: ITransformedLine): boolean {
-                if (value.transformed.length > 0)
-                    value.crc = calculateCrc64(value.transformed);
-                else
-                    value.crc = undefined;
-            });
-        } else {
-            this.lineCount = this.lines.length;
-            var line: ITransformedLine = this.lines[0];
-            line.crc = calculateCrc64(line.transformed);
-            crc.value0 - line.crc.value0;
-            crc.value1 - line.crc.value1;
-            crc.value2 - line.crc.value2;
-            crc.value3 - line.crc.value3;
-            for (idx = 1; idx < this.lines.length; idx++) {
-                line: ITransformedLine = this.lines[idx];
-                if (line.transformed.length > 0) {
-                    this.lineCount++;
-                    line.crc = calculateCrc64(line.transformed);
-                }
-                else
-                    line.crc = undefined;
-            }
+    function onTextChanged(this: IControlData): void {
+        switch (this.nonAlphaNumOption) {
+            case "ignore":
+                this.lines.forEach(function(value: ITransformedLine): void { value.transformed = value.source.replace(/[^A-Za-z\d\s]+/g, ''); });
+                break;
+            case "whitespace":
+                this.lines.forEach(function(value: ITransformedLine): void { value.transformed = value.source.replace(/[^A-Za-z\d\s]+/g, ' '); });
+                break;
+            default:
+                this.lines.forEach(function(value: ITransformedLine): void { value.transformed = value.source; });
+                break;
         }
-        this.crc = aggregateCrc64(this.lines).toString();
+        switch (this.whiteSpaceOption) {
+            case "ignore":
+                this.lines.forEach(function(value: ITransformedLine): void { value.transformed = value.transformed.replace(/\s+/g, ''); });
+                break;
+            case "normalize":
+                this.lines.forEach(function(value: ITransformedLine): void { value.transformed = value.transformed.trim().replace(/\s+/g, ' '); });
+                break;
+            case "trim":
+                this.lines.forEach(function(value: ITransformedLine): void { value.transformed = value.transformed.trim(); });
+                break;
+        }
+        this.lineCount = 0;
+        if (this.ignoreBlankLines) {
+            if (this.ignoreCase)
+                this.crc = aggregateCrc64(this.lines.filter(function(this: IControlData, value: ITransformedLine): boolean {
+                    if (value.transformed.length > 0) {
+                        value.crc = calculateCrc64(value.transformed.toLowerCase());
+                        this.lineCount++;
+                        value.lineNumber = this.lineCount.toString();
+                        this.charCount += value.transformed.length;
+                        return true;
+                    }
+                    value.lineNumber = '';
+                    return false;
+                }, this).map(function(value: ITransformedLine): ICrc64 { return value.crc; })).toString();
+            else
+                this.crc = aggregateCrc64(this.lines.filter(function(this: IControlData, value: ITransformedLine): boolean {
+                    if (value.transformed.length > 0) {
+                        value.crc = calculateCrc64(value.transformed);
+                        this.lineCount++;
+                        value.lineNumber = this.lineCount.toString();
+                        this.charCount += value.transformed.length;
+                        return true;
+                    }
+                    value.lineNumber = '';
+                    return false;
+                }, this).map(function(value: ITransformedLine): ICrc64 { return value.crc; })).toString();
+        } if (this.ignoreCase)
+            this.crc = aggregateCrc64(this.lines.map(function(this: IControlData, value: ITransformedLine): ICrc64 {
+                this.charCount += value.transformed.length;
+                value.crc = calculateCrc64(value.transformed.toLowerCase());
+                this.lineCount++;
+                value.lineNumber = this.lineCount.toString();
+                return value.crc;
+            }, this)).toString();
+        else
+            this.crc = aggregateCrc64(this.lines.map(function(this: IControlData, value: ITransformedLine): ICrc64 {
+                this.charCount += value.transformed.length;
+                value.crc = calculateCrc64(value.transformed);
+                this.lineCount++;
+                value.lineNumber = this.lineCount.toString();
+                return value.crc;
+            }, this)).toString();
     }
 
-    function applySingleLineChange(this: IControlData): void {
-        var text = this.sourceText;
-		if (text.length > 0) {
-			this.wordCount = getWordCount(text);
-			this.lines = [text];
-			switch (this.whiteSpaceOption) {
-				case 'ignore':
-					text = (this.nonAlphaNumOption == 'none') ? stripWs(text) : stripNonAlphaNum(text);
-							break;
-				case 'trim':
-					switch (this.nonAlphaNumOption) {
-						case 'whitespace':
-							text = nonAlphaNumWsToSpaceAndTrim(text);
-							break;
-						case 'ignore':
-							text = stripNonAlphaNumWsAndTrim(text);
-							break;
-						default:
-							text = text.trim();
-							break;
-					}
-					break;
-				case 'normalize':
-					switch (this.nonAlphaNumOption) {
-						case 'whitespace':
-							text = nonAlphaNumWsToSpaceAndNormalize(text);
-							break;
-						case 'ignore':
-							text = stripNonAlphaNumWsAndNormalize(text);
-							break;
-						default:
-							text = normalizeWs(text);
-							break;
-					}
-					break;
-				default:
-					switch (this.nonAlphaNumOption) {
-						case 'whitespace':
-							text = nonAlphaNumWsToSpace(text);
-							break;
-						case 'ignore':
-							text = stripNonAlphaNumWs(text);
-							break;
-					}
-					break;
-			}
-			if (text.length > 0) {
-				this.crc = getCrcString(calculateCrc64(this.ignoreCase ? text.toLowerCase() : text));
-				this.charCount = text.length;
-				this.lineCount = 1;
-				this.tranformedText = [text];
-				return;
-			}	
-		} else
-			this.wordCount = 0;
-		this.charCount = 0;
-		this.crc = EMPTY_CRC;
-		if (this.ignoreBlankLines) {
-			this.lineCount = 0;
-			this.tranformedText = [];
-            this.lineCrc = ['(ignored)'];
-		} else {
-			this.lineCount = 1;
-			this.tranformedText = [''];
-            this.lineCrc = [EMPTY_CRC];
-		}
-    }
+	var c: IController = <IController>this;
+	c.data.singleLineText = '';
+	c.data.multiLineText = '';
+    c.data.lines = [{ lineNumber: 1, source: '', transformed: '', crc: calculateCrc64() }];
+	c.data.crc = c.data.lines[0].crc.toString();
+	c.data.charCount = 0;
+	c.data.wordCount = 0;
+	c.data.lineCount = 1;
+	c.data.whiteSpaceOption = 'none';
+	c.data.ignoreCase = false;
+	c.data.nonAlphaNumOption = 'none';
+	c.data.isMultiLine = false;
+    c.data.ignoreBlankLines = false;
 
-    c.onMultiLineChanged = function(this: IController): void {
-		if (this.data.multiline)
-            applyMultiLineChange.apply(this.data);
-		else {
-			if (this.data.lines.length > 1)
-				this.data.sourceText = this.data.lines[0];
-            applySingleLineChange.apply(this.data);
+    c.onIsMultiLineChanged = function(this: IController): void {
+		if (this.data.isMultiLine) {
+            this.data.multiLineText = this.data.singleLineText;
+            this.data.lines = this.data.multiLineText.split(/\r\n?|\n/g).map(function(value: string): ITransformedLine { return <ITransformedLine>{ source: value }; });
+            onTextChanged.apply(this.data);
+        } else {
+            var firstLine: ITransformedLine = this.data.lines[0];
+			this.data.singleLineText = firstLine.source;
+            if (this.data.lines.length > 1) {
+                this.data.lines = [firstLine];
+                this.data.lineCount = 1;
+                this.data.crc = this.crc = aggregateCrc64((typeof firstLine.crc === 'undefined') ? [] : [firstLine.crc]).toString();
+            }
 		}
     };
 
     c.onIgnoreBlankChanged = function(this: IController): void {
-		if (this.multiline) {
-			if (this.data.ignoreBlankLines)
-				this.data.lineCount = (this.data.tranformedText = this.data.tranformedText.filter(isNotEmptyString)).length;
-			else
-                applyMultiLineChange.apply(this.data);
-		}
+        this.data.lineCount = 0;
+        this.lineCount = 0;
+        if (this.ignoreBlankLines)
+            this.crc = aggregateCrc64(this.lines.filter(function(this: IControlData, value: ITransformedLine): boolean {
+                if (value.transformed.length == 0) {
+                    this.lineCount++;
+                    value.lineNumber = this.lineCount.toString();
+                    return true;
+                }
+                value.lineNumber = '';
+                value.crc = undefined;
+                return false;
+            }, this).map(function(value: ITransformedLine): ICrc64 { return value.crc; })).toString();
+        else
+            this.crc = aggregateCrc64(this.lines.map(function(this: IControlData, value: ITransformedLine): ICrc64 {
+                if (value.transformed.length == 0)
+                    value.crc = calculateCrc64();
+                this.lineCount++;
+                value.lineNumber = this.lineCount.toString();
+                return value.crc;
+            }, this)).toString();
     };
 
-    c.onTextChanged = function(this: IController): void {
-		if (this.data.multiline) {
-			this.data.wordCount = getWordCount(this.data.sourceText);
-			this.data.lines = this.data.sourceText.split(/[\r\n]/g);
-            applyMultiLineChange.apply(this.data);
-		} else
-            applySingleLineChange.apply(this.data);
+    c.onSingleLineTextChanged = function(this: IController): void {
+        if (this.data.isMultiLine)
+            return;
+        this.wordCount = getWordCount(this.data.singleLineText);
+        this.data.lines = <ITransformedLine[]>[{ source: this.data.singleLineText }];
+        onTextChanged.apply(this.data);
+    };
+    
+    c.onMultiLineTextChanged = function(this: IController): void {
+        if (!this.data.isMultiLine)
+            return;
+        this.wordCount = getWordCount(this.data.multiLineText);
+        this.data.lines = this.data.multiLineText.split(/\r\n?|\n/g).map(function(value: string): ITransformedLine { return <ITransformedLine>{ source: value }; });
+        onTextChanged.apply(this.data);
     };
 };
