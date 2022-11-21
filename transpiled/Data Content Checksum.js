@@ -42,7 +42,7 @@ api.controller=function() {
     function calculateCrc64(text) {
         var crc = {
             buffer: new Int8Array(8),
-            toString() { return crc64ToString(this.buffer); }
+            toString: function() { return crc64ToString(this.buffer); }
         };
         crc.buffer[0] = 0;
         crc.buffer[1] = 0;
@@ -61,9 +61,9 @@ api.controller=function() {
     function aggregateCrc64(inputCrcs) {
         var crc;
         if (inputCrcs.length == 1) {
-            var crc = {
+            crc = {
                 buffer: new Int8Array(8),
-                toString() { return crc64ToString(this.buffer); }
+                toString: function() { return crc64ToString(this.buffer); }
             };
             var firstCrc = inputCrcs[0];
             crc.buffer[0] = firstCrc.buffer[0];

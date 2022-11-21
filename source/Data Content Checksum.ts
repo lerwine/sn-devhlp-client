@@ -77,7 +77,7 @@ var api: { controller: function } = function() {
     function calculateCrc64(text?: string | null) : ICrc64 {
         var crc = {
             buffer: new Int8Array(8),
-            toString(this: ICrc64): string { return crc64ToString(this.buffer); }
+            toString: function(this: ICrc64): string { return crc64ToString(this.buffer); }
         };
         crc.buffer[0] = 0;
         crc.buffer[1] = 0;
@@ -98,9 +98,9 @@ var api: { controller: function } = function() {
         if (inputCrcs.length == 1) {
             var crc = {
                 buffer: new Int8Array(8),
-                toString(this: ICrc64): string { return crc64ToString(this.buffer); }
+                toString: function(this: ICrc64): string { return crc64ToString(this.buffer); }
             };
-            var firstCrc = inputCrcs[0];
+            firstCrc = inputCrcs[0];
             crc.buffer[0] = firstCrc.buffer[0];
             crc.buffer[1] = firstCrc.buffer[1];
             crc.buffer[2] = firstCrc.buffer[2];
@@ -288,7 +288,7 @@ var api: { controller: function } = function() {
         this.data.lines = <ITransformedLine[]>[{ source: this.data.singleLineText }];
         onTextChanged.apply(this.data);
     };
-    
+
     c.onMultiLineTextChanged = function(this: IController): void {
         if (!this.data.isMultiLine)
             return;
