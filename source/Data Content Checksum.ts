@@ -2,7 +2,7 @@ declare type WHITESPACE_OPTION = 'none' | 'trim' | 'normalize' | 'ignore';
 declare type NONALPHANUM_OPTION = 'none' | 'whitespace' | 'ignore';
 
 declare interface ICrc64 {
-    buffer: Int8Array & { length: 8 };
+    buffer: number[] & { length: 8 };
     toString(): string;
 }
 declare interface ITransformedLine {
@@ -57,36 +57,22 @@ var api: { controller: function } = function() {
     
     function zeroPad2(value: number): string { return (value < -9 || value > 9) ? value.toString(16) : '0' + value.toString(16); }
 
-    function crc64ToString(buffer: Int8Array & { length: 8 }): string {
+    function crc64ToString(buffer: number[] & { length: 8 }): string {
         return zeroPad2(buffer[7]) + zeroPad2(buffer[6]) + '-' + zeroPad2(buffer[5]) + zeroPad2(buffer[4]) +
             '-' + zeroPad2(buffer[3]) + zeroPad2(buffer[2]) + '-' + zeroPad2(buffer[1]) + zeroPad2(buffer[0]);
     }
 
-    function calculateNextCrc64(buffer: Int8Array & { length: 8 }, value: number): void {
-        var v = crc64Table[(value ^ buffer[0]) & 0xff];
-        buffer[0] = buffer[1];
-        buffer[1] = buffer[2];
-        buffer[2] = buffer[3];
-        buffer[3] = buffer[4];
-        buffer[4] = buffer[5];
-        buffer[5] = buffer[6];
-        buffer[6] = buffer[7] ^ (v & 0xff);
-        buffer[7] = v >> 8;
+    function calculateNextCrc64(buffer: number[] & { length: 8 }, value: number): void {
+        var v = crc64Table[(value ^ buffer.shift()) & 0xff];
+        buffer[6] = buffer[6] ^ (v & 0xff);
+        buffer.push(v >> 8);
     }
 
     function calculateCrc64(text?: string | null) : ICrc64 {
         var crc = {
-            buffer: new Int8Array(8),
+            buffer: [0, 0, 0, 0, 0, 0, 0, 0],
             toString: function(this: ICrc64): string { return crc64ToString(this.buffer); }
         };
-        crc.buffer[0] = 0;
-        crc.buffer[1] = 0;
-        crc.buffer[2] = 0;
-        crc.buffer[3] = 0;
-        crc.buffer[4] = 0;
-        crc.buffer[5] = 0;
-        crc.buffer[6] = 0;
-        crc.buffer[7] = 0;
         if (typeof text === 'string')
             for (var i = 0; i < text.length; i++)
                 calculateNextCrc64(crc.buffer, text.charCodeAt(i));
@@ -96,19 +82,11 @@ var api: { controller: function } = function() {
     function aggregateCrc64(inputCrcs: ICrC64[]): ICrC64 {
         var crc: ICrC64;
         if (inputCrcs.length == 1) {
+            var buffer = inputCrcs[0].buffer;
             var crc = {
-                buffer: new Int8Array(8),
+                buffer: [buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7]],
                 toString: function(this: ICrc64): string { return crc64ToString(this.buffer); }
             };
-            firstCrc = inputCrcs[0];
-            crc.buffer[0] = firstCrc.buffer[0];
-            crc.buffer[1] = firstCrc.buffer[1];
-            crc.buffer[2] = firstCrc.buffer[2];
-            crc.buffer[3] = firstCrc.buffer[3];
-            crc.buffer[4] = firstCrc.buffer[4];
-            crc.buffer[5] = firstCrc.buffer[5];
-            crc.buffer[6] = firstCrc.buffer[6];
-            crc.buffer[7] = firstCrc.buffer[7];
         } else {
             crc = calculateCrc64();
             if (inputCrcs.length > 1) {

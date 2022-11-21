@@ -28,30 +28,16 @@ api.controller=function() {
     }
 
     function calculateNextCrc64(buffer, value) {
-        var v = crc64Table[(value ^ buffer[0]) & 0xff];
-        buffer[0] = buffer[1];
-        buffer[1] = buffer[2];
-        buffer[2] = buffer[3];
-        buffer[3] = buffer[4];
-        buffer[4] = buffer[5];
-        buffer[5] = buffer[6];
-        buffer[6] = buffer[7] ^ (v & 0xff);
-        buffer[7] = v >> 8;
+        var v = crc64Table[(value ^ buffer.shift()) & 0xff];
+        buffer[6] = buffer[6] ^ (v & 0xff);
+        buffer.push(v >> 8);
     }
 
     function calculateCrc64(text) {
         var crc = {
-            buffer: new Int8Array(8),
+            buffer: [0, 0, 0, 0, 0, 0, 0, 0],
             toString: function() { return crc64ToString(this.buffer); }
         };
-        crc.buffer[0] = 0;
-        crc.buffer[1] = 0;
-        crc.buffer[2] = 0;
-        crc.buffer[3] = 0;
-        crc.buffer[4] = 0;
-        crc.buffer[5] = 0;
-        crc.buffer[6] = 0;
-        crc.buffer[7] = 0;
         if (typeof text === 'string')
             for (var i = 0; i < text.length; i++)
                 calculateNextCrc64(crc.buffer, text.charCodeAt(i));
@@ -61,19 +47,11 @@ api.controller=function() {
     function aggregateCrc64(inputCrcs) {
         var crc;
         if (inputCrcs.length == 1) {
+            var buffer = inputCrcs[0].buffer;
             crc = {
-                buffer: new Int8Array(8),
+                buffer: [buffer[0], buffer[1], buffer[2], buffer[3], buffer[4], buffer[5], buffer[6], buffer[7]],
                 toString: function() { return crc64ToString(this.buffer); }
             };
-            var firstCrc = inputCrcs[0];
-            crc.buffer[0] = firstCrc.buffer[0];
-            crc.buffer[1] = firstCrc.buffer[1];
-            crc.buffer[2] = firstCrc.buffer[2];
-            crc.buffer[3] = firstCrc.buffer[3];
-            crc.buffer[4] = firstCrc.buffer[4];
-            crc.buffer[5] = firstCrc.buffer[5];
-            crc.buffer[6] = firstCrc.buffer[6];
-            crc.buffer[7] = firstCrc.buffer[7];
         } else {
             crc = calculateCrc64();
             if (inputCrcs.length > 1) {
