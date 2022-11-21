@@ -1,0 +1,21 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+			"label": "Build Client Scripts",
+			"type": "typescript",
+			"tsconfig": "source/tsconfig.json",
+			"options": {
+				"cwd": "${workspaceFolder}/source"
+			},
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$tsc"
+			],
+			"detail": "tsc --build - source/tsconfig.json"
+		}
+    ]
+}
