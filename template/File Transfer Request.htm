@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=1024, initial-scale=1.0">
+  <title>Template</title>
+  <link type="text/css" href="sp-bootstrap.scss" />
+</head>
+<body>
+    <div class="form-group">
+      <label for="sourceSystemSelect">Source System</label>
+      <select id="sourceSystemSelect" class="form-control" ng-model="c.data.selectedSourceSystem" ng-change="c.onSelectedSourceSystemChanged()">
+        <option ng-repeat="x for x in c.data.systemOptions" value="{{x.key}}">{{x.display}} ({{x.classification}})</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="targetSystemSelect">Target System</label>
+      <select id="targetSystemSelect" class="form-control" ng-model="c.data.selectedTargetSystem" ng-change="c.onSelectedTargetSystemChanged()">
+        <option ng-repeat="x for x in c.data.systemOptions" value="{{x.key}}">{{x.display}} ({{x.classification}})</option>
+      </select>
+    </div>
+    <div class="checkbox">
+        <label>
+            <input type="checkbox" ng-model="c.data.isRoutineRequest"> Can't check this
+        </label>
+    </div>
+    <div class="form-group">
+      <label for="smeReviewerNameTextBox">SME Reviewer</label>
+      <input type="text" class="form-control" id="smeReviewerNameTextBox" ng-model="c.data.smeReviewerName" />
+    </div>
+    <div class="form-group">
+      <label for="justificationTextArea">Justification</label>
+      <textarea id="justificationTextArea" ng-model="c.data.justification" ng-change="c.onJustificationChanged()"></textarea>
+    </div>
+    <div class="form-group">
+      <label for="stagingFolderTextBox">Staging Folder</label>
+      <input type="text" class="form-control" id="stagingFolderTextBox" ng-model="c.data.smeReviewerName" ng-change="c.onStagingFolderChanged()" />
+    </div>
+    <div ng-if=""></div>
+</body>

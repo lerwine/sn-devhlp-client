@@ -1,0 +1,31 @@
+{
+    "name": "sn-devhlp.client",
+    "version": "0.1.0",
+    "description": "Client-side code for the  ServiceNow \"SN Dev Helper\" application (https://github.com/lerwine/x_922204_sn_devhlp).",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/lerwine/sn-devhlp-client.git"
+    },
+    "keywords": [
+        "ServiceNow",
+        "Scoped",
+        "Server"
+    ],
+    "author": "Leonard T. Erwine",
+    "license": "GPL-3.0-only",
+    "bugs": {
+        "url": "https://github.com/lerwine/sn-devhlp-client/issues"
+    },
+    "homepage": "https://github.com/lerwine/sn-devhlp-client#readme",
+    "devDependencies": {
+        "@popperjs/core": "^2.11.5",
+        "@types/angular": "^1.8.4",
+        "@types/bootstrap": "^5.1.12",
+        "@types/jquery": "^3.5.14",
+        "typescript": "^4.9.3"
+    }
+}
